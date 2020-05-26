@@ -678,7 +678,7 @@ def RL_process(eposide_num, epsilon, RL_SAVE_PATH):
             time = time + deltaT
             Path[round(time,1)] = Record_Path(agent1, agent2, agent3, agent4, time)
             
-        lines =  str(agent1_init_state) + ';' + str(agent2_init_state) + ';' + str(agent3_init_state) + '\n'   
+        lines =  str(agent1_init_state) + ';' + str(agent2_init_state) + ';' + str(agent3_init_state) + ';' + str(agent4_init_state) + '\n'   
         if result == 'Finish':
             Path = Calculate_value(Path, 1, time)
             f = open(RL_SAVE_PATH + '/Finish.json', 'a+')
