@@ -599,7 +599,7 @@ def RL_process(eposide_num, epsilon, RL_SAVE_PATH):
             continue
             
         TIME_OUT = Calculate_distance(agent1.Px, agent1.Py, agent1.gx, agent1.gy) * TIME_OUT_FACTOR
-        Path[round(time,1)] = Record_Path(agent1, agent2, agent3, time)
+        Path[round(time,1)] = Record_Path(agent1, agent2, agent3, agent4, time)
         
         agent1_init_state = [agent1.Px, agent1.Py, agent1.Pth, agent1.V, agent1.W, agent1.r, agent1.gx, agent1.gy, agent1.gth, agent1.rank, agent1.m11, agent1.m12, agent1.m13, V_max]
         agent2_init_state = [agent2.Px, agent2.Py, agent2.Pth, agent2.V, agent2.W, agent2.r, agent2.gx, agent2.gy, agent2.gth, agent2.rank, agent2.m11, agent2.m12, agent2.m13, V_max]
