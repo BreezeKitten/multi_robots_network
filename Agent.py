@@ -30,10 +30,10 @@ class Observed_State():
         return [self.x, self.y, self.Vx, self.Vy, self.r]
 
 class Agent():
-    def __init__(self, name, Px, Py, Pth, V, W, r, gx, gy, gth, rank):
+    def __init__(self, name, Px, Py, Pth, V, W, r, gx, gy, gth, rank, mode = 'Greedy'):
         self.name = name
         self.state = State(Px, Py, Pth, V, W, r)
-        self.gx, self.gy, self.gth, self.rank = gx, gy, gth, rank
+        self.gx, self.gy, self.gth, self.rank, self.mode = gx, gy, gth, rank, mode
         self.Path = [copy.deepcopy(self.state)]
         
     def Update_state(self, dt = 0.1):
@@ -52,6 +52,15 @@ class Agent():
     def Set_V_W(self, V_next, W_next):
         self.state.V = V_next
         self.state.W = W_next
+        
+    def Relative_observed_goal(self,  observe_x, observe_y, observe_th):
+        gx_temp = self.gx - observe_x
+        gy_temp = self.gy - observe_y
+        gth_obs = Correct_angle(self.gth - observe_th)
+        th_obs = observe_th
+        gx_obs = m.cos(th_obs) * gx_temp + m.sin(th_obs) * gy_temp
+        gy_obs = -m.sin(th_obs) * gx_temp + m.cos(th_obs) * gy_temp
+        return gx_obs, gy_obs, gth_obs
     
     def Relative_observed_state(self, observe_x, observe_y, observe_th):
         x_temp = self.state.Px - observe_x
@@ -70,6 +79,11 @@ class Agent():
         plt.arrow(self.state.Px, self.state.Py, L*m.cos(self.state.Pth), L*m.sin(self.state.Pth))
         circle1 = plt.Circle( (self.state.Px, self.state.Py), self.state.r, color = color, fill = False)
         ax.add_artist(circle1)
+    
+    def Plot_goal(self, ax ,color = 'b'):
+        L = 0.5
+        plt.plot(self.gx, self.gy, color+'o')
+        plt.arrow(self.gx, self.gy, L*m.cos(self.gth), L*m.sin(self.gth))
     
     def Plot_Path(self, ax, color = 'b'):
         L = 0.5       
