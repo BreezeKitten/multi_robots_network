@@ -188,7 +188,7 @@ def Choose_action_from_Network(main_agent, Agent_Set, epsilon):
                     action_pair = [V_pred, W_pred]                    
         V_pred = action_pair[0]
         W_pred = action_pair[1]
-        print(action_value_max)
+        #print(action_value_max)
     return V_pred, W_pred
 
 
