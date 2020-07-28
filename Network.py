@@ -5,7 +5,7 @@ Created on Tue Jun 16 15:18:17 2020
 @author: BreezeCat
 """
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 number_of_state = 15 #for relative coordinate the state variables will reduce 3
