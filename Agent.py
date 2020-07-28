@@ -35,6 +35,7 @@ class Agent():
         self.state = State(Px, Py, Pth, V, W, r)
         self.gx, self.gy, self.gth, self.rank, self.mode = gx, gy, gth, rank, mode
         self.Path = [copy.deepcopy(self.state)]
+        self.Goal_state = 'Not'
         
     def Update_state(self, dt = 0.1):
         TH = Correct_angle(self.state.Pth +  self.state.W * dt)

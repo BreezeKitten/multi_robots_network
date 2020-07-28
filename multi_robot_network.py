@@ -238,9 +238,7 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
         Main_Agent = Random_Agent('Main')
         Agent_Set = [Main_Agent]
         for i in range(robot_num-1):
-            Agent_Set.append(Random_Agent(str(i+2)))
-       
-        
+            Agent_Set.append(Random_Agent(str(i+2)))      
         
         time = 0
         result = 'Finish'
@@ -261,17 +259,9 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
 
         if Check_Goal(Main_Agent, Calculate_distance(resX, resY, 0, 0), resTH):
             continue
-
-            
+          
         TIME_OUT = Calculate_distance(Main_Agent.state.Px, Main_Agent.state.Py, Main_Agent.gx, Main_Agent.gy) * TIME_OUT_FACTOR
 
-        '''
-        agent1_init_state = [agent1.Px, agent1.Py, agent1.Pth, agent1.V, agent1.W, agent1.r, agent1.gx, agent1.gy, agent1.gth, agent1.rank, agent1.m11, agent1.m12, agent1.m13, V_max]
-        agent2_init_state = [agent2.Px, agent2.Py, agent2.Pth, agent2.V, agent2.W, agent2.r, agent2.gx, agent2.gy, agent2.gth, agent2.rank, agent2.m11, agent2.m12, agent2.m13, V_max]
-        agent3_init_state = [agent3.Px, agent3.Py, agent3.Pth, agent3.V, agent3.W, agent3.r, agent3.gx, agent3.gy, agent3.gth, agent3.rank, agent3.m11, agent3.m12, agent3.m13, V_max]
-        agent4_init_state = [agent4.Px, agent4.Py, agent4.Pth, agent4.V, agent4.W, agent4.r, agent4.gx, agent4.gy, agent4.gth, agent4.rank, agent4.m11, agent4.m12, agent4.m13, V_max]
-        '''
-        
         while(not Check_Goal(Main_Agent, Calculate_distance(resX, resY, 0, 0), resTH)):
             if time > TIME_OUT:
                 result = 'TIME_OUT'
@@ -301,48 +291,100 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
                     agent.Update_state(dt = deltaT)
                                 
             time = time + deltaT
-
-        '''    
-        lines =  str(agent1_init_state) + ';' + str(agent2_init_state) + ';' + str(agent3_init_state) + ';' + str(agent4_init_state) + '\n'   
-        if result == 'Finish':
-            Path = Calculate_value(Path, 1, time)
-            f = open(RL_SAVE_PATH + '/Finish.json', 'a+')
-            f.writelines(lines)
-            f.close()
-        elif result == 'TIME_OUT':
-            Path = Calculate_value(Path, -1, time)
-            f = open(RL_SAVE_PATH + '/TimeOut.json', 'a+')
-            f.writelines(lines)
-            f.close()
-        elif result == 'Collision_high':
-            Path = Calculate_value(Path, Collision_high_penalty, time)
-            f = open(RL_SAVE_PATH + '/Collision.json', 'a+')
-            f.writelines(lines)
-            f.close()
-        elif result == 'Collision_low':
-            Path = Calculate_value(Path, Collision_low_penalty, time)
-            f = open(RL_SAVE_PATH + '/Collision.json', 'a+')
-            f.writelines(lines)
-            f.close()
-        elif result == 'Collision_equal':
-            Path = Calculate_value(Path, Collision_equ_penalty, time)
-            f = open(RL_SAVE_PATH + '/Collision.json', 'a+')
-            f.writelines(lines)
-            f.close()
-        else:
-            print('Unexpected result: ', result)
-            f = open(RL_SAVE_PATH + '/Unexpected.json', 'a+')
-            f.writelines(lines)
-            f.close()
-            
-        Record_data(Path, RL_SAVE_PATH +'/RL_Path.json')
-        '''
         
         Show_Path(Agent_Set, result, RL_SAVE_PATH)
-
-
     return
 
+
+def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):    
+    for eposide in range(eposide_num):
+        if eposide%20 == 0:
+            print(eposide)
+        Main_Agent = Random_Agent('Main')
+        Agent_Set = [Main_Agent]
+        for i in range(robot_num-1):
+            Agent_Set.append(Random_Agent(str(i+2)))      
+        
+        time = 0
+        
+        Collision_Flag = False
+        Goal_dist_Flag = False
+        for item in Agent_Set:
+            for item2 in Agent_Set:
+                if item.name != item2.name:
+                    Collision_Flag = Collision_Flag or Check_Collision(item, item2)
+                    Goal_dist_Flag = Goal_dist_Flag or Calculate_distance(item.gx, item.gy, item2.gx, item2.gy) < (item.state.r + item2.state.r)
+                if Collision_Flag or Goal_dist_Flag:
+                    break
+            if Collision_Flag or Goal_dist_Flag:
+                break
+        if Collision_Flag or Goal_dist_Flag:
+            continue
+
+        if Check_Goal(Main_Agent, Calculate_distance(resX, resY, 0, 0), resTH):
+            continue
+        
+        TIME_OUT = 0
+        for agent in Agent_Set:
+            TIME_OUT = max(TIME_OUT, Calculate_distance(agent.state.Px, agent.state.Py, agent.gx, agent.gy) * TIME_OUT_FACTOR)
+   
+       
+        terminal_flag = True
+        for agent in Agent_Set:
+            small_goal_flag = Check_Goal(agent, Calculate_distance(resX, resY, 0, 0), resTH)
+            if small_goal_flag:
+                agent.Goal_state = 'Finish'
+            terminal_flag = terminal_flag and small_goal_flag
+
+        while(not terminal_flag):       
+            for agent1 in Agent_Set:               
+                for agent2 in Agent_Set:
+                    if agent1.name != agent2.name:
+                        if Check_Collision(agent1, agent2):
+                            if agent1.rank > agent2.rank:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_high'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_low'
+                            elif agent1.rank < agent2.rank:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_low'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_high'
+                            else:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_equal'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_equal'
+                if Check_Goal(agent1, Calculate_distance(resX, resY, 0, 0), resTH) and agent1.Goal_state == 'Not':
+                    agent1.Goal_state = 'Finish'
+
+
+            terminal_flag = True
+            for agent in Agent_Set:
+                if agent.Goal_state == 'Not':
+                    V_next, W_next = Choose_action(agent, Agent_Set)
+                else:
+                    V_next, W_next = 0, 0  
+                agent.Set_V_W(V_next, W_next)
+                terminal_flag = terminal_flag and agent.Goal_state != 'Not'
+                       
+            if time > TIME_OUT:
+                for agent in Agent_Set:
+                    if agent.Goal_state == 'Not':
+                        agent.Goal_state = 'TIME_OUT'
+                break
+            
+            for agent in Agent_Set:
+                agent.Update_state(dt = deltaT)                        
+            time = time + deltaT
+        
+        result = ''
+        for agent in Agent_Set:
+            print(agent.Goal_state)
+            result = result + agent.Goal_state[0]
+        Show_Path(Agent_Set, result, RL_SAVE_PATH)
+    return
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -352,4 +394,8 @@ if __name__ == '__main__':
     Config_dict = Load_Config(Configfile)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     Value, Network_list = Build_network(sess, int(Config_dict['main']['robot_num']))
-    RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
+    if int(Config_dict['main']['all_goal']):
+        print('All goal process')
+        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
+    else:
+        RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
