@@ -4,7 +4,7 @@ Created on Thu Jul 23 11:14:57 2020
 
 @author: BreezeCat
 """
-
+import sys
 import tensorflow.compat.v1 as tf
 import json
 import random
@@ -18,8 +18,10 @@ import state_load as SL
 import os
 import Agent
 import Network
+import configparser
 
 tf.reset_default_graph()
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.20) 
 color_list = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 
 ####
@@ -66,14 +68,21 @@ y_lower_bound = -5      #unit:m
 TIME_OUT_FACTOR = 4
 
 
-agnet2_motion = 'Greedy'
-agnet3_motion = 'Greedy'
-agnet4_motion = 'Greedy'
 RL_eposide_num = 100
 RL_epsilon = 0
 gamma = 0.9
 
 
+
+
+def Load_Config(file):
+    print('Load config from ' + file)
+    config = configparser.ConfigParser()
+    config.read(file)
+    configDict = {section: dict(config.items(section)) for section in config.sections()}
+    print(configDict)
+    return configDict
+    
 
 def Build_network(session, robot_num):
     Network_set = []
@@ -336,6 +345,11 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
 
 
 if __name__ == '__main__':
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.20) 
+    if len(sys.argv) < 2:
+        Configfile = input('Config file at:')
+    else:
+        Configfile = sys.argv[1]
+    Config_dict = Load_Config(Configfile)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    Value, Network_list = Build_network(sess, 5)
+    Value, Network_list = Build_network(sess, int(Config_dict['main']['robot_num']))
+    RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
