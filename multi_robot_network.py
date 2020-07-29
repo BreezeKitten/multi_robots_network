@@ -227,7 +227,7 @@ def Show_Path(Agent_Set, result, save_path):
         agent.Plot_goal(ax = ax, color = color_list[color_count%len(color_list)])
         color_count += 1
     NOW = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-    plt.savefig(save_path +'/image/'+ NOW + result +'.png')
+    plt.savefig(save_path +'/'+ NOW + result +'.png')
     return
 
 def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):      
@@ -261,7 +261,11 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
             continue
           
         TIME_OUT = Calculate_distance(Main_Agent.state.Px, Main_Agent.state.Py, Main_Agent.gx, Main_Agent.gy) * TIME_OUT_FACTOR
-
+        
+        
+        NOW = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        save_path = RL_SAVE_PATH + '/' + NOW
+        os.makedirs(save_path)
         while(not Check_Goal(Main_Agent, Calculate_distance(resX, resY, 0, 0), resTH)):
             if time > TIME_OUT:
                 result = 'TIME_OUT'
@@ -292,7 +296,11 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
                                 
             time = time + deltaT
         
+        
+        for agent in Agent_Set:
+            agent.Record_data(save_path)
         Show_Path(Agent_Set, result, RL_SAVE_PATH)
+        
     return
 
 
@@ -335,7 +343,10 @@ def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
             if small_goal_flag:
                 agent.Goal_state = 'Finish'
             terminal_flag = terminal_flag and small_goal_flag
-
+            
+        NOW = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        save_path = RL_SAVE_PATH + '/' + NOW
+        os.makedirs(save_path)
         while(not terminal_flag):       
             for agent1 in Agent_Set:               
                 for agent2 in Agent_Set:
@@ -381,12 +392,13 @@ def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
         
         result = ''
         for agent in Agent_Set:
-            print(agent.Goal_state)
             result = result + agent.Goal_state[0]
-        Show_Path(Agent_Set, result, RL_SAVE_PATH)
+            agent.Record_data(save_path)
+        Show_Path(Agent_Set, result, save_path)
     return
 
 if __name__ == '__main__':
+    NOW =  datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     if len(sys.argv) < 2:
         Configfile = input('Config file at:')
     else:
@@ -396,6 +408,10 @@ if __name__ == '__main__':
     Value, Network_list = Build_network(sess, int(Config_dict['main']['robot_num']))
     if int(Config_dict['main']['all_goal']):
         print('All goal process')
-        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
+        save_path = Config_dict['main']['save_path'] + '/' + NOW +'_all_goal'
+        os.makedirs(save_path)
+        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path)
     else:
-        RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = Config_dict['main']['save_path'])
+        save_path = Config_dict['main']['save_path'] + '/' + NOW +'_main_goal'
+        os.makedirs(save_path)
+        RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path)

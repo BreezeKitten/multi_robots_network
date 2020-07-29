@@ -7,6 +7,7 @@ Created on Tue Jul 21 15:51:25 2020
 import math as m
 import matplotlib.pyplot as plt
 import copy
+import json
 
 class State():
     def __init__(self, Px, Py, Pth, V, W, r):
@@ -18,6 +19,15 @@ class State():
         self.r = r
     def List(self):
         return [self.Px, self.Py, self.Pth, self.V, self.W, self.r]
+    
+    def Record_state(self, save_file):
+        file = open(save_file, 'a+')
+        state = {}
+        state['Px'], state['Py'], state['Pth'], state['V'], state['W'], state['r'] = self.Px, self.Py, self.Pth, self.V, self.W, self.r
+        json.dump(state, file)
+        file.writelines('\n') 
+        file.close()
+        return
 
 class Observed_State():
     def __init__(self, x, y, Vx, Vy, r):
@@ -106,7 +116,18 @@ class Agent():
         circle.append(plt.Circle( (item.Px, item.Py), item.r, color = color, fill = False))
         plt.text(item.Px-0.2, item.Py, str(i-1), bbox=dict(color=color, alpha=0.5))
         ax.add_artist(circle[-1])
-
+        
+    def Record_data(self, save_path):
+        file_name = save_path + '/' + self.name + '.json'
+        init_para = {}
+        init_para['gx'], init_para['gy'], init_para['gth'], init_para['rank'], init_para['mode'], init_para['result'] = self.gx, self.gy, self.gth, self.rank, self.mode, self.Goal_state
+        file = open(file_name, 'a+')
+        json.dump(init_para, file)
+        file.writelines('\n') 
+        file.close()
+        for state in self.Path:
+            state.Record_state(file_name)
+        
     
 def Correct_angle(angle):
     angle = m.fmod(angle, 2*m.pi)
@@ -134,3 +155,4 @@ def main_test():
         B.Update_state(0.1)
     A.Plot_Path(ax = ax)
     B.Plot_Path(ax = ax, color='r')
+    A.Record_data('logs')
