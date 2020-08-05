@@ -82,8 +82,15 @@ def Load_Config(file):
     configDict = {section: dict(config.items(section)) for section in config.sections()}
     print(configDict)
     return configDict
-    
 
+def Set_parameter(paraDict):
+    global deltaT, V_max, W_max, linear_acc_max, angular_acc_max, size_min, TIME_OUT_FACTOR
+    print('Set parameter\n', paraDict)
+    deltaT = float(paraDict['deltat'])
+    V_max, W_max, linear_acc_max, angular_acc_max = float(paraDict['v_max']), float(paraDict['w_max']), float(paraDict['linear_acc_max']), float(paraDict['angular_acc_max'])
+    size_min = float(paraDict['size_min'])
+    TIME_OUT_FACTOR = float(paraDict['time_out_factor'])
+    
 def Build_network(session, robot_num):
     Network_set = []
     for i in range(robot_num - 1):
@@ -406,6 +413,10 @@ if __name__ == '__main__':
     Config_dict = Load_Config(Configfile)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     Value, Network_list = Build_network(sess, int(Config_dict['main']['robot_num']))
+    
+    if int(Config_dict['main']['custom_parameter']):
+        Set_parameter(Config_dict['parameter'])
+    
     if int(Config_dict['main']['all_goal']):
         print('All goal process')
         save_path = Config_dict['main']['save_path'] + '/' + NOW +'_all_goal'
