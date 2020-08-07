@@ -71,6 +71,7 @@ def GIF_process(log_path, robot_num, save_path):
             break
         else:
             count += 1
+    Close_logs(robot_dict)
 
 if __name__ == '__main__':
     print('Replay log')
