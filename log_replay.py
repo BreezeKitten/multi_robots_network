@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import Agent
 import json
 import copy
+import math
+import numpy as np
 
 color_list = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 x_upper_bound = 5       #unit:m
@@ -15,6 +17,15 @@ x_lower_bound = -5      #unit:m
 y_upper_bound = 5       #unit:m
 y_lower_bound = -5      #unit:m
 
+Arrived_reward = 1
+Time_out_penalty = -0.25
+Collision_high_penalty = -0.5
+Collision_low_penalty = -1
+Collision_equ_penalty = -0.75
+Reward_dict = {}
+Reward_dict['Finish'], Reward_dict['TIME_OUT'] = Arrived_reward, Time_out_penalty  
+Reward_dict['Collision_low'], Reward_dict['Collision_high'], Reward_dict['Collision_equal'] = Collision_high_penalty, Collision_low_penalty, Collision_equ_penalty
+gamma = 0.9
 
 def Open_logs(log_path, robot_num):
     print('Open logs in ' + log_path + '\nfor "' + str(robot_num) + '" robots')
@@ -72,6 +83,92 @@ def GIF_process(log_path, robot_num, save_path):
         else:
             count += 1
     Close_logs(robot_dict)
+    
+    
+def Calculate_Value(data, result):
+    for count in data:
+        for item in data[count]:
+            if int(count) <= result[item][0]:
+                data[count][item]['Value'] = Reward_dict[result[item][1]] * math.pow(gamma, result[item][0]-int(count))
+    return data
+
+def Save_data(data, result, save_path):
+    file = open(save_path, 'a+')
+    for count in data:
+        for item in data[count]:
+            if int(count) <= result[item][0]:
+                json.dump(data[count][item], file)
+                file.writelines('\n')
+    file.close()           
+    return data
+
+
+def Transform_learning_data(log_path, robot_num, save_path):
+    robot_dict = Open_logs(log_path, robot_num)
+    count = 0
+    data = {}
+    result = {}
+    while(1):
+        data[str(count)] = {}
+        for main in robot_dict:
+            main_agent = robot_dict[main]['Agent']
+            main_state = main_agent.state
+            obs_gx, obs_gy, obs_gth = main_agent.Relative_observed_goal(main_state.Px, main_state.Py, main_state.Pth)
+            data[str(count)][main_agent.name] = {}
+            dataline = data[str(count)][main_agent.name]
+            dataline['V'], dataline['W'], dataline['r1'], dataline['Vmax'], dataline['gx'], dataline['gy'], dataline['gth'] = main_state.V, main_state.W, main_state.r, 3, obs_gx, obs_gy, obs_gth
+            obs_robot_num = 1
+            for obs in robot_dict:
+                obs_agent = robot_dict[obs]['Agent']
+                if main_agent.name != obs_agent.name:
+                    obs_robot_num += 1
+                    obs_state = obs_agent.Relative_observed_state(main_state.Px, main_state.Py, main_state.Pth)                    
+                    m11, m12, m13 = 0, 0, 0
+                    if main_agent.rank > obs_agent.rank:   
+                        m11 = 1
+                    elif main_agent.rank < obs_agent.rank:   
+                        m13 = 1
+                    else:   
+                        m12 = 1
+                    num = str(obs_robot_num)
+                    dataline['Px'+num], dataline['Py'+num], dataline['Vx'+num], dataline['Vy'+num], dataline['r'+num] = obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r
+                    dataline['m11_'+num], dataline['m12_'+num], dataline['m13_'+num] =  m11, m12, m13
+            print(dataline)
+                
+        Error = False
+        for item in robot_dict:
+            try:
+                Update_state_from_log(robot_dict[item]['Agent'], json.loads(robot_dict[item]['log'].readline()))
+            except Exception as e:   
+                print('error - msg:',e) 
+                Error = True
+                break
+        if Error:
+            print('End')
+            break
+        else:
+            for item in robot_dict:
+                agent = robot_dict[item]['Agent']
+                if agent.Path[-2].Px == agent.Path[-1].Px and agent.Path[-2].Py == agent.Path[-1].Py and agent.Path[-2].Pth == agent.Path[-1].Pth:
+                    if agent.Path[-2].V != agent.Path[-1].V and agent.Path[-2].W != agent.Path[-1].W:
+                        result[agent.name] = [count+1, robot_dict[item]['result']]
+            
+            count += 1
+    Close_logs(robot_dict)
+    
+    data = Calculate_Value(data, result)
+    Save_data(data, result, save_path)
+    return data, result
+    
+def Read_log_list(log_list_file):
+    file = open(log_list_file, 'r')
+    data = file.readline()
+    log_list = []
+    while(data):
+        log_list.append(data)
+        data = file.readline()
+    file.close()
+    return log_list
 
 if __name__ == '__main__':
     print('Replay log')
