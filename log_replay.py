@@ -133,7 +133,7 @@ def Transform_learning_data(log_path, robot_num, save_path):
                     num = str(obs_robot_num)
                     dataline['Px'+num], dataline['Py'+num], dataline['Vx'+num], dataline['Vy'+num], dataline['r'+num] = obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r
                     dataline['m11_'+num], dataline['m12_'+num], dataline['m13_'+num] =  m11, m12, m13
-            print(dataline)
+            #print(dataline)
                 
         Error = False
         for item in robot_dict:
@@ -145,6 +145,10 @@ def Transform_learning_data(log_path, robot_num, save_path):
                 break
         if Error:
             print('End')
+            for item in robot_dict:
+                agent = robot_dict[item]['Agent']
+                if agent.name not in result:
+                    result[agent.name] = [count+1, robot_dict[item]['result']]
             break
         else:
             for item in robot_dict:
