@@ -84,3 +84,54 @@ class final_output():
     def restore_parameter(self, session, network):
         self.final_layer_saver.restore(session, network)
         
+
+
+
+number_of_state_3 = 23 #7+8+8
+layer1_output_number_3 = 250
+layer2_output_number_3 = 200
+layer3_output_number_3 = 150
+layer4_output_number_3 = 50         
+        
+class Three_robot_network():
+    def __init__(self, name):
+        self.name = name
+        with tf.name_scope('3_robot_State_'+self.name):
+            self.state = tf.placeholder(tf.float32, [None, number_of_state_3])
+        with tf.name_scope('3_robot_NW_'+self.name):
+            self.H1, self.W1, self.B1 = add_layer(self.state, number_of_state_3, layer1_output_number_3, 'W1', 'B1', activation_function=tf.nn.relu)
+            self.H2, self.W2, self.B2 = add_layer(self.H1, layer1_output_number_3, layer2_output_number_3, 'W2', 'B2', activation_function=tf.nn.relu)
+            self.H3, self.W3, self.B3 = add_layer(self.H2, layer2_output_number_3, layer3_output_number_3, 'W3', 'B3', activation_function=tf.nn.relu)
+            self.H4, self.W4, self.B4 = add_layer(self.H3, layer3_output_number_3, layer4_output_number_3, 'W4', 'B4', activation_function=tf.nn.sigmoid)
+            self.value, self.Wf, self.Bf = add_layer(self.H4, layer4_output_number_3, 1, 'Wf', 'Bf', activation_function=tf.nn.tanh)
+            self.network_saver = tf.train.Saver({'W1':self.W1,'W2':self.W2,'W3':self.W3,'W4':self.W4,'Wf':self.Wf,
+                            'B1':self.B1,'B2':self.B2,'B3':self.B3,'B4':self.B4,'Bf':self.Bf})
+    
+    def restore_parameter(self, session, network):
+        self.network_saver.restore(session, network)
+        
+        
+        
+number_of_state_4 = 31 #7+8+8
+layer1_output_number_4 = 300
+layer2_output_number_4 = 250
+layer3_output_number_4 = 150
+layer4_output_number_4 = 50         
+        
+class Four_robot_network():
+    def __init__(self, name):
+        self.name = name
+        with tf.name_scope('4_robot_State_'+self.name):
+            self.state = tf.placeholder(tf.float32, [None, number_of_state_4])
+        with tf.name_scope('4_robot_NW_'+self.name):
+            self.H1, self.W1, self.B1 = add_layer(self.state, number_of_state_4, layer1_output_number_4, 'W1', 'B1', activation_function=tf.nn.relu)
+            self.H2, self.W2, self.B2 = add_layer(self.H1, layer1_output_number_4, layer2_output_number_4, 'W2', 'B2', activation_function=tf.nn.relu)
+            self.H3, self.W3, self.B3 = add_layer(self.H2, layer2_output_number_4, layer3_output_number_4, 'W3', 'B3', activation_function=tf.nn.relu)
+            self.H4, self.W4, self.B4 = add_layer(self.H3, layer3_output_number_4, layer4_output_number_4, 'W4', 'B4', activation_function=tf.nn.sigmoid)
+            self.value, self.Wf, self.Bf = add_layer(self.H4, layer4_output_number_4, 1, 'Wf', 'Bf', activation_function=tf.nn.tanh)
+            self.network_saver = tf.train.Saver({'W1':self.W1,'W2':self.W2,'W3':self.W3,'W4':self.W4,'Wf':self.Wf,
+                            'B1':self.B1,'B2':self.B2,'B3':self.B3,'B4':self.B4,'Bf':self.Bf})
+    
+    def restore_parameter(self, session, network):
+        self.network_saver.restore(session, network)
+        
