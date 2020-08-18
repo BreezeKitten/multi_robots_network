@@ -8,6 +8,9 @@ Created on Tue Jun 16 15:18:17 2020
 import tensorflow.compat.v1 as tf
 
 
+
+
+
 number_of_state = 15 #for relative coordinate the state variables will reduce 3
 layer1_output_number = 200
 layer2_output_number = 150
@@ -134,4 +137,10 @@ class Four_robot_network():
     
     def restore_parameter(self, session, network):
         self.network_saver.restore(session, network)
+        
+        
+Network_Dict = {'2': Two_robot_network, 
+                '3': Three_robot_network,
+                '4': Four_robot_network
+        }
         
