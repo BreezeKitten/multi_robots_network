@@ -6,7 +6,7 @@ Created on Thu Aug 13 15:23:08 2020
 """
 
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import json
 import Network
 import random
@@ -61,9 +61,9 @@ def Divide_state_value(data, state_list):
             value = np.concatenate((value, temp_value), axis=0)
     return state, value
 
-def DL_process(Target_network, DL_database, state_list):
+def DL_process(sess, Target_network, DL_database, state_list, train_step, loss_record, Network, value, writer):
     data = Read_data(DL_database)
-    Target_network.network_saver.save(sess, Network_path+Network_file_name)   
+    Target_network.network_saver.save(sess, Network)   
     for training_eposide in range(training_eposide_num):
         training_data = Sample_data(data, training_num)
         training_state, training_value = Divide_state_value(training_data, state_list)
@@ -73,14 +73,14 @@ def DL_process(Target_network, DL_database, state_list):
             rs = sess.run(loss_record, feed_dict = {Target_network.state: training_state, value: training_value})
             writer.add_summary(rs, training_eposide)
             print('record', training_eposide)
-            Target_network.network_saver.save(sess, Network_path+Network_file_name)   
+            Target_network.network_saver.save(sess, Network)   
 
-    Target_network.network_saver.save(sess, Network_path+Network_file_name)    
+    Target_network.network_saver.save(sess, Network)    
     return
 
 
 if __name__ == '__main__':
-    Network_path = 'TEST/Network'
+    Network_path = 'TEST/Network/'
     DL_log_path = 'TEST/DL_log'
     Network_file_name = '3_robot.ckpt'
     
