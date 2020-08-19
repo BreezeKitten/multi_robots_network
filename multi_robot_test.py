@@ -164,13 +164,20 @@ def Random_Agent(name):
     rank = random.randint(1,3)
     return Agent.Agent(name, Px, Py, Pth, V, W, r, gx, gy, gth, rank, mode = 'Greedy')
 
-def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
-    State_list = []
+def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
+    Other_Set, State_list = [], []
     for agent in Agent_Set:
         if main_agent.name != agent.name:
-            pred_state = main_agent.Predit_state(V_pred, W_pred, dt = deltaT)
-            obs_state = agent.Relative_observed_state(pred_state.Px, pred_state.Py, pred_state.Pth)
-            obs_gx, obs_gy, obs_gth = main_agent.Relative_observed_goal(pred_state.Px, pred_state.Py, pred_state.Pth)
+            Other_Set.append(agent)
+    Comb_Set = Combination.Combination_list(Other_Set, base_network-1)
+    
+    pred_state = main_agent.Predit_state(V_pred, W_pred, dt = deltaT)
+    obs_gx, obs_gy, obs_gth = main_agent.Relative_observed_goal(pred_state.Px, pred_state.Py, pred_state.Pth)
+    
+    for Comb_item in Comb_Set:
+        other_state = [V_pred, W_pred, main_agent.state.r, obs_gx, obs_gy, obs_gth, V_max] 
+        for agent in Comb_item:
+            obs_state = agent.Relative_observed_state(pred_state.Px, pred_state.Py, pred_state.Pth)            
             m11, m12, m13 = 0, 0, 0
             if main_agent.rank > agent.rank:   
                 m11 = 1
@@ -178,7 +185,8 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
                 m13 = 1
             else:   
                 m12 = 1
-            State_list.append([[V_pred, W_pred, main_agent.state.r, obs_gx, obs_gy, obs_gth, V_max, m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r]])
+            other_state += [m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r]
+        State_list.append([other_state])
             
     if len(State_list) == len(Network_list):
         state_dict = {}
@@ -209,7 +217,7 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
     return action_value
 
 
-def Choose_action_from_Network(main_agent, Agent_Set, epsilon):
+def Choose_action_from_Network(main_agent, Agent_Set, epsilon, base_network):
     dice = random.random()
     action_value_max = -999999   
     if dice < epsilon:
@@ -224,7 +232,7 @@ def Choose_action_from_Network(main_agent, Agent_Set, epsilon):
             V_pred = np.clip(main_agent.state.V + linear_acc * deltaT, -V_max, V_max)
             for angular_acc in angular_acc_set:
                 W_pred = np.clip(main_agent.state.W + angular_acc * deltaT, -W_max, W_max)
-                action_value = Predict_action_value(main_agent, Agent_Set, V_pred, W_pred)
+                action_value = Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network)
                 if action_value > action_value_max:
                     action_value_max = action_value
                     action_pair = [V_pred, W_pred]                    
@@ -234,14 +242,14 @@ def Choose_action_from_Network(main_agent, Agent_Set, epsilon):
     return V_pred, W_pred
 
 
-def Choose_action(main_agent, Agent_Set):
+def Choose_action(main_agent, Agent_Set, base_network):
     if main_agent.mode == 'Static':
         V_next, W_next = 0, 0
     if main_agent.mode == 'Random':
         V_next = main_agent.state.V + random.random() - 0.5
         W_next = main_agent.state.W + random.random() - 0.5
     if main_agent.mode == 'Greedy':
-        V_next, W_next = Choose_action_from_Network(main_agent, Agent_Set, 0)
+        V_next, W_next = Choose_action_from_Network(main_agent, Agent_Set, 0, base_network)
         
     return V_next, W_next
 
@@ -263,7 +271,7 @@ def Show_Path(Agent_Set, result, save_path):
     plt.savefig(save_path +'/'+ NOW + result +'.png')
     return
 
-def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):      
+def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH, base_network):      
     for eposide in range(eposide_num):
         
         if eposide%20 == 0:
@@ -321,7 +329,7 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
                     if Check_Goal(agent, Calculate_distance(resX, resY, 0, 0), resTH):
                         V_next, W_next = 0, 0                    
                     else:
-                        V_next, W_next = Choose_action(agent, Agent_Set)
+                        V_next, W_next = Choose_action(agent, Agent_Set, base_network)
                     agent.Set_V_W(V_next, W_next)
                     
                 for agent in Agent_Set:
@@ -337,7 +345,7 @@ def RL_process(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
     return
 
 
-def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):    
+def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH, base_network):    
     for eposide in range(eposide_num):
         if eposide%20 == 0:
             print(eposide)
@@ -407,7 +415,7 @@ def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
             terminal_flag = True
             for agent in Agent_Set:
                 if agent.Goal_state == 'Not':
-                    V_next, W_next = Choose_action(agent, Agent_Set)
+                    V_next, W_next = Choose_action(agent, Agent_Set, base_network)
                 else:
                     V_next, W_next = 0, 0  
                 agent.Set_V_W(V_next, W_next)
@@ -447,7 +455,7 @@ if __name__ == '__main__':
         print('All goal process')
         save_path = Config_dict['main']['save_path'] + '/' + NOW +'_all_goal'
         os.makedirs(save_path)
-        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path)
+        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path, 2)
     else:
         save_path = Config_dict['main']['save_path'] + '/' + NOW +'_main_goal'
         os.makedirs(save_path)
