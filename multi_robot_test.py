@@ -446,7 +446,14 @@ if __name__ == '__main__':
         Configfile = sys.argv[1]
     Config_dict = Load_Config(Configfile)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    Value, Network_list = Build_network(sess, int(Config_dict['main']['robot_num']))
+    
+    if 'base' in Config_dict['main']:
+        Base = int(Config_dict['main']['base'])
+    else:
+        Base = 2
+    print('Test with ' + str(Base) + ' Network')
+    
+    Value, Network_list, Train = Build_network(sess, int(Config_dict['main']['robot_num']), Base)
     
     if int(Config_dict['main']['custom_parameter']):
         Set_parameter(Config_dict['parameter'])
@@ -455,8 +462,8 @@ if __name__ == '__main__':
         print('All goal process')
         save_path = Config_dict['main']['save_path'] + '/' + NOW +'_all_goal'
         os.makedirs(save_path)
-        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path, 2)
+        RL_process_all_Goal(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path, base_network = Base)
     else:
         save_path = Config_dict['main']['save_path'] + '/' + NOW +'_main_goal'
         os.makedirs(save_path)
-        RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path)
+        RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path, base_network = Base)
