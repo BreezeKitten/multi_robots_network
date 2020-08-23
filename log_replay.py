@@ -10,6 +10,10 @@ import json
 import copy
 import math
 import numpy as np
+import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import time
+import threading
 
 color_list = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 x_upper_bound = 5       #unit:m
@@ -165,14 +169,82 @@ def Transform_learning_data(log_path, robot_num, save_path):
     return data, result
     
 def Read_log_list(log_list_file):
-    file = open(log_list_file, 'r')
+    file = open(log_list_file, 'r', encoding="utf-8")
     data = file.readline()
     log_list = []
     while(data):
-        log_list.append(data)
+        log_list.append(data[:-1])
         data = file.readline()
     file.close()
     return log_list
+
+
+def GIF_process_TK(log_path, robot_num, TKapp):
+    robot_dict = Open_logs(log_path, robot_num)
+    count = 0
+    while(1):
+        plt.close('all')
+        fig = plt.figure(figsize=(12,12))
+        #ax = plt.gca()
+        ax = fig.add_subplot(1, 1, 1)
+        
+        
+        
+        ax.cla()    
+        ax.set_xlim((x_lower_bound,x_upper_bound))     #上下限
+        ax.set_ylim((x_lower_bound,x_upper_bound))
+        plt.xlabel('X(m)')
+        plt.ylabel('Y(m)')
+        color_count = 0
+        for item in robot_dict:
+            robot_dict[item]['Agent'].Plot_Path(ax = ax, color = color_list[color_count%len(color_list)])
+            robot_dict[item]['Agent'].Plot_goal(ax = ax, color = color_list[color_count%len(color_list)])
+            color_count += 1           
+        #plt.savefig(save_path +'/'+ str(count).zfill(4) +'.png')
+        fig_tk = FigureCanvasTkAgg(fig, TKapp)
+        fig_tk.get_tk_widget().grid(column=0, row=10, ipadx=5, pady=5, sticky=tk.W+tk.N)
+        time.sleep(0.1)
+        print(count)
+        Error = False
+        for item in robot_dict:
+            try:
+                Update_state_from_log(robot_dict[item]['Agent'], json.loads(robot_dict[item]['log'].readline()))
+            except Exception as e:   
+                print('error - msg:',e) 
+                Error = True
+                break
+        if Error:
+            print('End')
+            break
+        else:
+            count += 1
+    Close_logs(robot_dict)
+
+
+def callback(log_path, robot_num, TKapp):
+    #GIF_process_TK(log_path, robot_num, TKapp)
+    a = threading.Thread(target=GIF_process_TK, args=(log_path, robot_num, TKapp))
+    a.start()
+    return
+
+
+            
+def Window_app(log_list_file, robot_num):
+    log_list = Read_log_list(log_list_file)  
+    app = tk.Tk()
+    app.geometry('920x920')
+    variable = tk.StringVar(app)
+    variable.set(log_list[0])
+    opt = tk.OptionMenu(app, variable, *log_list)
+    opt.config(width=90, font=('Helvetica', 12))
+    #opt.pack()
+    opt.grid()
+    
+    variable.trace("w", lambda *args: callback(variable.get(), robot_num, app))
+    app.mainloop()
+
+
+
 
 if __name__ == '__main__':
     print('Replay log')
