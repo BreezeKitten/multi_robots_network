@@ -201,10 +201,11 @@ def GIF_process_TK(log_path, robot_num, TKapp):
             robot_dict[item]['Agent'].Plot_goal(ax = ax, color = color_list[color_count%len(color_list)])
             color_count += 1           
         #plt.savefig(save_path +'/'+ str(count).zfill(4) +'.png')
-        fig_tk = FigureCanvasTkAgg(fig, TKapp)
-        fig_tk.get_tk_widget().grid(column=0, row=10, ipadx=5, pady=5, sticky=tk.W+tk.N)
+        
         time.sleep(0.1)
         print(count)
+        fig_tk = FigureCanvasTkAgg(fig, TKapp)
+        fig_tk.get_tk_widget().grid(column=0, row=10, ipadx=5, pady=5, sticky=tk.W+tk.N)
         Error = False
         for item in robot_dict:
             try:
@@ -224,6 +225,7 @@ def GIF_process_TK(log_path, robot_num, TKapp):
 def callback(log_path, robot_num, TKapp):
     #GIF_process_TK(log_path, robot_num, TKapp)
     a = threading.Thread(target=GIF_process_TK, args=(log_path, robot_num, TKapp))
+    a.daemon = True
     a.start()
     return
 
