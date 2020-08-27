@@ -164,6 +164,19 @@ def Random_Agent(name):
     rank = random.randint(1,3)
     return Agent.Agent(name, Px, Py, Pth, V, W, r, gx, gy, gth, rank, mode = 'Greedy')
 
+def Set_Agent(name):
+    Px = float(input('Px(-5~5m): '))
+    Py = float(input('Py(-5~5m): '))
+    Pth = float(input('Pth(0~6.28): '))
+    V = 0 #(random.random() - 0.5) * V_max
+    W = 0 #(random.random() - 0.5) * W_max
+    r = float(input('r(0.1~1m): '))
+    gx = float(input('gx(-5~5m): '))
+    gy = float(input('gy(-5~5m): '))
+    gth = float(input('gth(0~6.28): '))
+    rank = int(input('rnak(1.2.3): '))
+    return Agent.Agent(name, Px, Py, Pth, V, W, r, gx, gy, gth, rank, mode = 'Greedy')
+
 def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
     Other_Set, State_list = [], []
     for agent in Agent_Set:
@@ -437,6 +450,101 @@ def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH, base_netw
             agent.Record_data(save_path)
         Show_Path(Agent_Set, result, save_path)
     return
+
+
+def TEST_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH, base_network):    
+    for eposide in range(eposide_num):
+        if eposide%20 == 0:
+            print(eposide)
+        Main_Agent = Set_Agent('Main')
+        Agent_Set = [Main_Agent]
+        for i in range(robot_num-1):
+            Agent_Set.append(Set_Agent(str(i+2)))      
+        
+        time = 0
+        
+        Collision_Flag = False
+        Goal_dist_Flag = False
+        for item in Agent_Set:
+            for item2 in Agent_Set:
+                if item.name != item2.name:
+                    Collision_Flag = Collision_Flag or Check_Collision(item, item2)
+                    Goal_dist_Flag = Goal_dist_Flag or Calculate_distance(item.gx, item.gy, item2.gx, item2.gy) < (item.state.r + item2.state.r)
+                if Collision_Flag or Goal_dist_Flag:
+                    break
+            if Collision_Flag or Goal_dist_Flag:
+                break
+        if Collision_Flag or Goal_dist_Flag:
+            continue
+
+        if Check_Goal(Main_Agent, Calculate_distance(resX, resY, 0, 0), resTH):
+            continue
+        
+        TIME_OUT = 0
+        for agent in Agent_Set:
+            TIME_OUT = max(TIME_OUT, Calculate_distance(agent.state.Px, agent.state.Py, agent.gx, agent.gy) * TIME_OUT_FACTOR)
+   
+       
+        terminal_flag = True
+        for agent in Agent_Set:
+            small_goal_flag = Check_Goal(agent, Calculate_distance(resX, resY, 0, 0), resTH)
+            if small_goal_flag:
+                agent.Goal_state = 'Finish'
+            terminal_flag = terminal_flag and small_goal_flag
+            
+        NOW = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        save_path = RL_SAVE_PATH + '/' + NOW
+        os.makedirs(save_path)
+        while(not terminal_flag):       
+            for agent1 in Agent_Set:               
+                for agent2 in Agent_Set:
+                    if agent1.name != agent2.name:
+                        if Check_Collision(agent1, agent2):
+                            if agent1.rank > agent2.rank:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_high'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_low'
+                            elif agent1.rank < agent2.rank:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_low'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_high'
+                            else:
+                                if agent1.Goal_state == 'Not':
+                                    agent1.Goal_state = 'Collision_equal'
+                                if agent2.Goal_state == 'Not':
+                                    agent2.Goal_state = 'Collision_equal'
+                if Check_Goal(agent1, Calculate_distance(resX, resY, 0, 0), resTH) and agent1.Goal_state == 'Not':
+                    agent1.Goal_state = 'Finish'
+
+
+            terminal_flag = True
+            for agent in Agent_Set:
+                if agent.Goal_state == 'Not':
+                    V_next, W_next = Choose_action(agent, Agent_Set, base_network)
+                else:
+                    V_next, W_next = 0, 0  
+                agent.Set_V_W(V_next, W_next)
+                terminal_flag = terminal_flag and agent.Goal_state != 'Not'
+                       
+            if time > TIME_OUT:
+                for agent in Agent_Set:
+                    if agent.Goal_state == 'Not':
+                        agent.Goal_state = 'TIME_OUT'
+                break
+            
+            for agent in Agent_Set:
+                agent.Update_state(dt = deltaT)                        
+            time = time + deltaT
+        
+        result = ''
+        for agent in Agent_Set:
+            result = result + agent.Goal_state[0]
+            agent.Record_data(save_path)
+        Show_Path(Agent_Set, result, save_path)
+    return
+
 
 if __name__ == '__main__':
     NOW =  datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
