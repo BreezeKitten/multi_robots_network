@@ -5,7 +5,7 @@ Created on Tue Aug 18 17:08:18 2020
 @author: BreezeCat
 """
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import json
 import random
 import numpy as np
@@ -74,7 +74,8 @@ RL_epsilon = 0
 gamma = 0.9
 
 Network_Path_Dict = {'2':'2_robot_network/gamma09_95_0429/test.ckpt', 
-                     '3':'TEST/Network/3_robot.ckpt'
+                     '3':'multi_robot_network/3_robot_network/0826_933/3_robot.ckpt',
+                     '4':'multi_robot_network/4_robot_network/1020_92/4_robot.ckpt'
         }
 
 
