@@ -22,6 +22,7 @@ import Network
 import configparser
 import log_replay 
 import Training
+import Combination
 
 tf.reset_default_graph()
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.20) 
@@ -53,7 +54,7 @@ DL Parameter
 training_eposide_num = 5000 #100000 
 training_num = 1500 #3000
 test_num = 1
-three_robot_Network_Path = 'TEST/Network/3_robot.ckpt'
+four_robot_Network_Path = '4TEST/Network/4_robot.ckpt'
 
 '''
 Motion Parameter
@@ -100,17 +101,17 @@ def Build_network(session, robot_num):
     for i in range(robot_num - 1):
         Network_set.append(Network.three_robot_network(str(10+i+1)))
     for item in Network_set:
-        item.restore_parameter(session, three_robot_Network_Path)
+        item.restore_parameter(session, four_robot_Network_Path)
     with tf.name_scope('Smallest_value'):
         smaller_value_list = [Network_set[0].value]
         for i in range(len(Network_set)-1):
             smaller_value_list.append(tf.minimum(smaller_value_list[i], Network_set[i+1].value))
         smallest_value = smaller_value_list[-1]
     '''
-    Network_set = [Network.Three_robot_network('123')]
+    Network_set = [Network.Four_robot_network('1234')]
     
     for item in Network_set:
-        item.restore_parameter(session, three_robot_Network_Path)
+        item.restore_parameter(session, four_robot_Network_Path)
     smallest_value = Network_set[0].value
     return smallest_value, Network_set
 
@@ -148,13 +149,20 @@ def Random_Agent(name):
     rank = random.randint(1,3)
     return Agent.Agent(name, Px, Py, Pth, V, W, r, gx, gy, gth, rank, mode = 'Greedy')
 
-def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
-    State_list = []
+def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network=4):
+    Other_Set, State_list = [], []
     for agent in Agent_Set:
         if main_agent.name != agent.name:
-            pred_state = main_agent.Predit_state(V_pred, W_pred, dt = deltaT)
-            obs_state = agent.Relative_observed_state(pred_state.Px, pred_state.Py, pred_state.Pth)
-            obs_gx, obs_gy, obs_gth = main_agent.Relative_observed_goal(pred_state.Px, pred_state.Py, pred_state.Pth)
+            Other_Set.append(agent)
+    Comb_Set = Combination.Combination_list(Other_Set, base_network-1)
+    
+    pred_state = main_agent.Predit_state(V_pred, W_pred, dt = deltaT)
+    obs_gx, obs_gy, obs_gth = main_agent.Relative_observed_goal(pred_state.Px, pred_state.Py, pred_state.Pth)
+    
+    for Comb_item in Comb_Set:
+        other_state = [V_pred, W_pred, main_agent.state.r, obs_gx, obs_gy, obs_gth, V_max] 
+        for agent in Comb_item:
+            obs_state = agent.Relative_observed_state(pred_state.Px, pred_state.Py, pred_state.Pth)            
             m11, m12, m13 = 0, 0, 0
             if main_agent.rank > agent.rank:   
                 m11 = 1
@@ -162,23 +170,13 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
                 m13 = 1
             else:   
                 m12 = 1
-            for agent2 in Agent_Set:
-                if main_agent.name != agent2.name and agent.name != agent2.name:
-                    obs_state_2 = agent2.Relative_observed_state(pred_state.Px, pred_state.Py, pred_state.Pth)
-                    m11_2, m12_2, m13_2 = 0, 0, 0
-                    if main_agent.rank > agent2.rank:   
-                        m11_2 = 1
-                    elif main_agent.rank < agent2.rank:   
-                        m13_2 = 1
-                    else:   
-                        m12_2 = 1
-                    State_list.append([[V_pred, W_pred, main_agent.state.r, obs_gx, obs_gy, obs_gth, V_max, m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r, m11_2, m12_2, m13_2, obs_state_2.x, obs_state_2.y, obs_state_2.Vx, obs_state_2.Vy, obs_state_2.r]])
-    
-    if len(State_list) == len(Network_list)*2:
+            other_state += [m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r]
+        State_list.append([other_state])
+            
+    if len(State_list) == len(Network_list):
         state_dict = {}
-        for i in range(len(Network_list)):
+        for i in range(len(State_list)):
             state_dict[Network_list[i].state] = State_list[i]
-            #print(State_list[i])
     else:
         print('robot num error')
         return 0
@@ -200,7 +198,7 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred):
                     R = Collision_equ_penalty
                 break
     action_value = R + value_matrix[0][0]
-    #print(action_value)            
+                
     return action_value
 
 
@@ -431,7 +429,7 @@ def RL_process_all_Goal(robot_num, eposide_num, epsilon, RL_SAVE_PATH):
 
 if __name__ == '__main__':
     NOW =  datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-    DL_Database = 'TEST/DataBase3.json'
+    DL_Database = '4TEST/DataBase4.json'
     #robot_state_list_3 = ['V', 'W', 'r1', 'gx', 'gy', 'gth', 'Vmax', 'm11_2', 'm12_2', 'm13_2', 'Px2', 'Py2', 'Vx2', 'Vy2', 'r2', 'm11_3', 'm12_3', 'm13_3', 'Px3', 'Py3', 'Vx3', 'Vy3', 'r3']
     '''
     if len(sys.argv) < 2:
@@ -457,7 +455,7 @@ if __name__ == '__main__':
         RL_process(int(Config_dict['main']['robot_num']), int(Config_dict['main']['eposide_num']), epsilon = 1, RL_SAVE_PATH = save_path)
     '''
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    Value, Network_list = Build_network(sess, 3)
+    Value, Network_list = Build_network(sess, 4)
     
     Target_network = Network_list[0]
     
@@ -472,17 +470,20 @@ if __name__ == '__main__':
     train_step = tf.train.AdamOptimizer(1e-3).minimize(loss)
     init = tf.global_variables_initializer()
     sess.run(init) 
-    Target_network.restore_parameter(sess, three_robot_Network_Path)
-    writer = tf.summary.FileWriter('TEST/DL_log', sess.graph)
+    Target_network.restore_parameter(sess, four_robot_Network_Path)
+    writer = tf.summary.FileWriter('4TEST/DL_log', sess.graph)
     #RL_process_all_Goal(3, 100, 0, 'TEST/Log/1')
-    
-    Test_Time = 240
-    while(Test_Time<280):
-        os.makedirs('TEST/Log/'+str(Test_Time))
-        Training.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_3, train_step, loss_record, three_robot_Network_Path, value, writer)
-        if Test_Time < 260:
+    #raining.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_4, train_step, loss_record, four_robot_Network_Path, value, writer)
+    #Training.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_4, train_step, loss_record, four_robot_Network_Path, value, writer)
+    #Training.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_4, train_step, loss_record, four_robot_Network_Path, value, writer)
+    #Training.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_4, train_step, loss_record, four_robot_Network_Path, value, writer)
+    Test_Time = 160
+    while(Test_Time<200):
+        os.makedirs('4TEST/Log/'+str(Test_Time))
+        Training.DL_process(sess, Target_network, DL_Database, Training.robot_state_list_4, train_step, loss_record, four_robot_Network_Path, value, writer)
+        if Test_Time < 180:
             e = 0.1
         else:
             e = 0
-        RL_process_all_Goal(3, 100, e, 'TEST/Log/'+str(Test_Time))
+        RL_process_all_Goal(4, 100, e, '4TEST/Log/'+str(Test_Time))
         Test_Time += 1
