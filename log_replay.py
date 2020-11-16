@@ -4,6 +4,8 @@ Created on Wed Aug  5 12:34:20 2020
 
 @author: BreezeCat
 """
+
+
 import matplotlib.pyplot as plt
 import Agent
 import json
@@ -183,8 +185,8 @@ def GIF_process_TK(log_path, robot_num, TKapp):
     robot_dict = Open_logs(log_path, robot_num)
     count = 0
     while(1):
-        plt.close('all')
-        fig = plt.figure(figsize=(12,12))
+        #plt.close('all')
+        fig = plt.figure(figsize=(9,9))
         #ax = plt.gca()
         ax = fig.add_subplot(1, 1, 1)
         
@@ -201,11 +203,11 @@ def GIF_process_TK(log_path, robot_num, TKapp):
             robot_dict[item]['Agent'].Plot_goal(ax = ax, color = color_list[color_count%len(color_list)])
             color_count += 1           
         #plt.savefig(save_path +'/'+ str(count).zfill(4) +'.png')
-        
-        time.sleep(0.1)
-        print(count)
         fig_tk = FigureCanvasTkAgg(fig, TKapp)
         fig_tk.get_tk_widget().grid(column=0, row=10, ipadx=5, pady=5, sticky=tk.W+tk.N)
+        time.sleep(0.1)
+        print(count)
+        
         Error = False
         for item in robot_dict:
             try:
