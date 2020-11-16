@@ -17,14 +17,14 @@ import copy
 import file_manger
 import state_load as SL
 import os
-import Agent
+import Agent_VO as Agent
 import Network
 import configparser
 import Combination
 
 tf.reset_default_graph()
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.20) 
-color_list = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+color_list = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
 
 ####
 #Common parameter
@@ -67,7 +67,7 @@ x_upper_bound = 5       #unit:m
 x_lower_bound = -5      #unit:m
 y_upper_bound = 5       #unit:m
 y_lower_bound = -5      #unit:m
-TIME_OUT_FACTOR = 4
+TIME_OUT_FACTOR = 10 #4
 
 
 RL_eposide_num = 100
@@ -81,6 +81,22 @@ Network_Path_Dict = {'2':'2_robot_network/gamma09_95_0429/test.ckpt',
         }
 
 
+
+def Saturation(V, W, Vmax, Wmax):
+    Vsat, Wsat = V, W
+    if abs(V) > Vmax:
+        Vsat = Vmax * abs(V)/V
+        Wsat = W * Vmax/abs(V)
+        if abs(Wsat) > Wmax:
+           Vsat = Vsat * Wmax/abs(Wsat)
+           Wsat = Wmax * abs(Wsat)/Wsat
+    elif abs(W) > Wmax:
+        Wsat = Wmax * abs(W)/W
+        Vsat = V * Wmax/abs(W)
+        if abs(Vsat) > Vmax:
+            Wsat = Wsat * Vmax/abs(Vsat)
+            Vsat = Vmax * abs(Vsat)/Vsat
+    return Vsat, Wsat
 
 
 def Load_Config(file):
@@ -182,6 +198,7 @@ def Set_Agent(name):
 
 def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
     Other_Set, State_list = [], []
+    VO_flag = False
     for agent in Agent_Set:
         if main_agent.name != agent.name:
             Other_Set.append(agent)
@@ -201,6 +218,7 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
                 m13 = 1
             else:   
                 m12 = 1
+            VO_flag = VO_flag or Agent.If_in_VO(pred_state, obs_state, time_factor='INF')
             other_state += [m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r]
         State_list.append([other_state])
             
@@ -212,6 +230,14 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
         print('robot num error')
         return 0
     value_matrix = sess.run(Value, feed_dict = state_dict)
+    
+    VO_R = 0
+
+    if not VO_flag:
+        VO_R = 0
+    else:
+        VO_R = 0
+    
     
     R = 0
     
@@ -274,10 +300,13 @@ def Show_Path(Agent_Set, result, save_path):
     plt.figure(figsize=(12,12))
     ax = plt.gca()
     ax.cla()    
-    ax.set_xlim((x_lower_bound,x_upper_bound))     #上下限
-    ax.set_ylim((x_lower_bound,x_upper_bound))
-    plt.xlabel('X(m)')
-    plt.ylabel('Y(m)')
+    ax.set_xlim((-4,4))     #上下限
+    ax.set_ylim((-3.2,3.2))
+    plt.xticks(fontsize=35)
+    plt.yticks(fontsize=35)
+    ax.set_aspect(1)
+    plt.xlabel('x (m)', fontsize=35)
+    plt.ylabel('y (m)', fontsize=35)
     color_count = 0
     for agent in Agent_Set:
         agent.Plot_Path(ax = ax, color = color_list[color_count%len(color_list)])
@@ -358,8 +387,9 @@ def TEST_process_all_Goal(robot_num, epsilon, RL_SAVE_PATH, base_network):
             if agent.Goal_state == 'Not':
                 V_next, W_next = Choose_action(agent, Agent_Set, base_network)
             else:
-                V_next, W_next = 0, 0  
-            agent.Set_V_W(V_next, W_next)
+                V_next, W_next = 0, 0
+            V_sat, W_sat = Saturation(V_next, W_next, 0.3, 0.5)
+            agent.Set_V_W(V_sat, W_sat)
             terminal_flag = terminal_flag and agent.Goal_state != 'Not'
                    
         if time > TIME_OUT:

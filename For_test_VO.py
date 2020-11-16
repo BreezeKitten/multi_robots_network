@@ -17,7 +17,7 @@ import copy
 import file_manger
 import state_load as SL
 import os
-import Agent
+import Agent_VO as Agent
 import Network
 import configparser
 import Combination
@@ -182,6 +182,7 @@ def Set_Agent(name):
 
 def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
     Other_Set, State_list = [], []
+    VO_flag = False
     for agent in Agent_Set:
         if main_agent.name != agent.name:
             Other_Set.append(agent)
@@ -201,6 +202,7 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
                 m13 = 1
             else:   
                 m12 = 1
+            VO_flag = VO_flag or Agent.If_in_VO(pred_state, obs_state, time_factor='INF')
             other_state += [m11, m12, m13, obs_state.x, obs_state.y, obs_state.Vx, obs_state.Vy, obs_state.r]
         State_list.append([other_state])
             
@@ -212,6 +214,14 @@ def Predict_action_value(main_agent, Agent_Set, V_pred, W_pred, base_network):
         print('robot num error')
         return 0
     value_matrix = sess.run(Value, feed_dict = state_dict)
+    
+    VO_R = 0
+
+    if not VO_flag:
+        VO_R = 0.5
+    else:
+        VO_R = 0
+    
     
     R = 0
     
