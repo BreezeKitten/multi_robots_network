@@ -5,7 +5,7 @@ Created on Tue Jun 16 15:18:17 2020
 @author: BreezeCat
 """
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 
@@ -27,11 +27,11 @@ m_layer4_output_number = layer4_output_number
 def add_layer(inputs, in_size, out_size, W_name, B_name, activation_function=None):
     with tf.name_scope('layer'):
         with tf.name_scope('weights'):
-            #Weights = tf.Variable(tf.random_normal([in_size, out_size]), name=W_name)
-            Weights = tf.Variable(tf.zeros([in_size, out_size]), name=W_name)
+            Weights = tf.Variable(tf.random_normal([in_size, out_size]), name=W_name)
+            #Weights = tf.Variable(tf.zeros([in_size, out_size]), name=W_name)
         with tf.name_scope('biases'):
-            #biases = tf.Variable(tf.zeros([1, out_size]) + 0.1, name=B_name)
-            biases = tf.Variable(tf.zeros([1, out_size]), name=B_name)
+            biases = tf.Variable(tf.zeros([1, out_size]) + 0.1, name=B_name)
+            #biases = tf.Variable(tf.zeros([1, out_size]), name=B_name)
         with tf.name_scope('Wx_plus_b'):
             Wx_plus_b = tf.matmul(inputs, Weights) + biases
         if activation_function is None:
@@ -116,8 +116,8 @@ class Three_robot_network():
         
         
 number_of_state_4 = 31 #7+8+8
-layer1_output_number_4 = 300
-layer2_output_number_4 = 250
+layer1_output_number_4 = 250#300
+layer2_output_number_4 = 200#250
 layer3_output_number_4 = 150
 layer4_output_number_4 = 50         
         

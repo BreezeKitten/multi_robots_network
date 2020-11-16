@@ -19,7 +19,7 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.20)
 DL Parameter
 '''
 training_eposide_num = 5000 #100000 
-training_num = 1500 #3000
+training_num = 3000 #1500 #3000
 test_num = 1
 
 robot_state_list_3 = ['V', 'W', 'r1', 'gx', 'gy', 'gth', 'Vmax', 'm11_2', 'm12_2', 'm13_2', 'Px2', 'Py2', 'Vx2', 'Vy2', 'r2', 'm11_3', 'm12_3', 'm13_3', 'Px3', 'Py3', 'Vx3', 'Vy3', 'r3']

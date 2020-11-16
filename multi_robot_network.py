@@ -5,7 +5,7 @@ Created on Thu Jul 23 11:14:57 2020
 @author: BreezeCat
 """
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import json
 import random
 import numpy as np
